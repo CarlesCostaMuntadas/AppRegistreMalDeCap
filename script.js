@@ -85,6 +85,7 @@ async function enviarEsdeveniment(boto) {
     try {
         await fetch(URL_APPLICACIO, {
             method: "POST",
+			mode: 'no-cors',
             body: JSON.stringify({ tipusRegistre: "esdeveniment", dataHora, esdeveniment, observacions })
         });
         alert("Desat correctament al teu Google Sheet!");
@@ -114,6 +115,7 @@ async function enviarMalDeCap(boto) {
     try {
         await fetch(URL_APPLICACIO, {
             method: "POST",
+			mode: 'no-cors',
             body: JSON.stringify({ tipusRegistre: "malDeCap", dataHora, tipus, intensitat, medicacio, observacions })
         });
         alert("Desat correctament al teu Google Sheet!");
