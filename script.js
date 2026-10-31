@@ -1,23 +1,178 @@
 // ==========================================
-// CONFIGURACIÓ DE L'APLICACIÓ
+// CONFIGURACIÓ DE SUPABASE
 // ==========================================
-const CLIENT_ID = "297457545292-bhvfq7mauqevmm22d8rd34pk9fjeg7oq.apps.googleusercontent.com";
-const URL_APPLICACIO = "https://script.google.com/macros/s/AKfycbytoJOD-aciPSmj1Fi3RqM9VObvr3WBfC1RBtzteA-6AfcQ8sqhLXG2yzo-lkJkPd1w/exec";
+const SUPABASE_URL = "https://rtfhnxjgygwpvtosqjbt.supabase.co"; 
+const SUPABASE_ANON_KEY = "sb_publishable_QtYdLnDhZqJ6nJgYWX5I8g_nug6i59_";
 
-let tokenClient;
-let gsiIniciat = false;
-let accessToken = null; // Guardarem aquí el token d'accés de Google
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    gestionarEstatSessio(session);
+
+    const formLogin = document.getElementById("formLogin");
+    const btnSignUpSubmit = document.getElementById("btnSignUpSubmit");
+
+    // Login
+    if (formLogin) {
+        formLogin.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                mostrarMissatge("Error d'accés: " + error.message, "error");
+            } else {
+                mostrarMissatge("Sessió iniciada correctament!", "success");
+                formLogin.reset();
+                gestionarEstatSessio(data.session);
+                carregarOpcionsDatalists(); // Carregar llistes un cop dins
+            }
+        });
+    }
+
+    // Registre
+    if (btnSignUpSubmit) {
+        btnSignUpSubmit.addEventListener("click", async () => {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+
+            if (!email || !password) {
+                mostrarMissatge("Omple el correu i la contrasenya.", "error");
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.signUp({ 
+                email, 
+                password,
+                options: { emailRedirectTo: window.location.href }
+            });
+
+            if (error) {
+                mostrarMissatge("Error en crear compte: " + error.message, "error");
+            } else {
+                mostrarMissatge("Compte creat! Revisa el teu correu per confirmar-lo.", "success");
+                formLogin.reset();
+            }
+        });
+    }
+
+    // Tancar sessió
+    const btnLogout = document.getElementById("btnLogout");
+    if (btnLogout) {
+        btnLogout.addEventListener("click", async () => {
+            await supabaseClient.auth.signOut();
+            gestionarEstatSessio(null);
+            mostrarMissatge("Sessió tancada.", "success");
+        });
+    }
+
+    // Baixar CSV
+    const btnDownloadCsv = document.getElementById("btnDownloadCsv");
+    if (btnDownloadCsv) {
+        btnDownloadCsv.addEventListener("click", descarregarCsvPropis);
+    }
+
     establirDatesActuals();
     inicialitzarEsdeveniments();
-    
-    // Si ja s'havia iniciat sessió abans, amaguem el login directament
-    if (localStorage.getItem("usuari_loguejat") === "true") {
-        document.getElementById("login-container").style.display = "none";
-        document.getElementById("app-container").classList.remove("hidden");
+
+    // Si ja hi havia una sessió activa en carregar la pàgina, carreguem les llistes
+    if (session) {
+        carregarOpcionsDatalists();
     }
 });
+
+// ==========================================
+// CARREGAR OPCIONS DINÀMIQUES ALS DATALISTS
+// ==========================================
+async function carregarOpcionsDatalists() {
+    try {
+        // Obtenim tots els registres de l'usuari actual
+        const { data, error } = await supabaseClient
+            .from('registres')
+            .select('tipus_registre, valor');
+
+        if (error) throw error;
+
+        // Base predefinida per a Esdeveniments (Aliments o activitats)
+        const esdevenimentsBase = ["Cafè", "Patata", "Ioga"];
+        // Base predefinida per a Tipus de Mal de Cap
+        const malDeCapBase = [
+            "Tensional", 
+            "Cervicàlgia (espleni)", 
+            "Pressió cranial", 
+            "Palpitant", 
+            "Migranya amb aura", 
+            "Migranya sense aura"
+        ];
+
+        // Extreure i filtrar de la base de dades
+        const esdevenimentsDB = data ? data.filter(r => r.tipus_registre === 'esdeveniment' && r.valor).map(r => r.valor) : [];
+        const malDeCapDB = data ? data.filter(r => r.tipus_registre === 'maldecap' && r.valor).map(r => r.valor) : [];
+
+        // Combinar, eliminar duplicats (fent servir Set) i ordenar alfabèticament (ignorant majúscules/minúscules)
+        const esdevenimentsUnics = [...new Set([...esdevenimentsBase, ...esdevenimentsDB])].sort((a, b) => a.localeCompare(b, 'ca', {sensitivity: 'accent'}));
+        const malDeCapUnics = [...new Set([...malDeCapBase, ...malDeCapDB])].sort((a, b) => a.localeCompare(b, 'ca', {sensitivity: 'accent'}));
+
+        // Actualitzar el DOM del datalist d'esdeveniments
+        const dlEsdeveniments = document.getElementById("llistaEsdeveniments");
+        if (dlEsdeveniments) {
+            dlEsdeveniments.innerHTML = "";
+            esdevenimentsUnics.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item;
+                dlEsdeveniments.appendChild(opt);
+            });
+        }
+
+        // Actualitzar el DOM del datalist de tipus de mal de cap
+        const dlMalDeCap = document.getElementById("llistaTipusMalDeCap");
+        if (dlMalDeCap) {
+            dlMalDeCap.innerHTML = "";
+            malDeCapUnics.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item;
+                dlMalDeCap.appendChild(opt);
+            });
+        }
+
+    } catch (err) {
+        console.error("Error carregant les llistes dinàmiques:", err);
+    }
+}
+
+// ==========================================
+// SISTEMA DE MISSATGES (TOAST)
+// ==========================================
+function mostrarMissatge(text, tipus) {
+    const toast = document.getElementById("toast-message");
+    if (!toast) return;
+
+    toast.textContent = text;
+    toast.className = `toast ${tipus}`;
+
+    setTimeout(() => {
+        toast.classList.add("hidden");
+    }, 4000);
+}
+
+// ==========================================
+// GESTIÓ DE LA SESSIÓ
+// ==========================================
+function gestionarEstatSessio(session) {
+    const loginContainer = document.getElementById("login-container");
+    const appContainer = document.getElementById("app-container");
+
+    if (session) {
+        if (loginContainer) loginContainer.style.display = "none";
+        if (appContainer) appContainer.classList.remove("hidden");
+    } else {
+        if (loginContainer) loginContainer.style.display = "block";
+        if (appContainer) appContainer.classList.add("hidden");
+    }
+}
 
 function establirDatesActuals() {
     const ara = new Date();
@@ -31,9 +186,6 @@ function establirDatesActuals() {
     if (inputMalDeCap) inputMalDeCap.value = dataLocal;
 }
 
-// ==========================================
-// NAVEGACIÓ ENTRE PANELLS
-// ==========================================
 window.mostrarPanell = function(panell) {
     const formEsdeveniment = document.getElementById("formEsdeveniment");
     const formMalDeCap = document.getElementById("formMalDeCap");
@@ -53,21 +205,7 @@ window.mostrarPanell = function(panell) {
     }
 };
 
-// ==========================================
-// AUTENTICACIÓ AMB GOOGLE
-// ==========================================
 function inicialitzarEsdeveniments() {
-    const btnLogin = document.getElementById("btnLogin");
-    if (btnLogin) {
-        btnLogin.addEventListener("click", () => {
-            if (tokenClient) {
-                tokenClient.requestAccessToken({ prompt: '' });
-            } else {
-                alert("El servei de Google encara s'està carregant. Torna-ho a provar en un segon.");
-            }
-        });
-    }
-
     const formEsdeveniment = document.getElementById("formEsdeveniment");
     if (formEsdeveniment) {
         formEsdeveniment.addEventListener("submit", (e) => gestionarEnviament(e, 'esdeveniment'));
@@ -75,95 +213,96 @@ function inicialitzarEsdeveniments() {
 
     const formMalDeCap = document.getElementById("formMalDeCap");
     if (formMalDeCap) {
-        formMalDeCap.addEventListener("submit", (e) => gestionarEnviament(e, 'malDeCap'));
+        formMalDeCap.addEventListener("submit", (e) => gestionarEnviament(e, 'maldecap'));
     }
 }
 
-// Funció global per a Google Identity Services
-window.gisLoaded = function() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
-        callback: (response) => {
-            if (response.error !== undefined) {
-                console.error("Error d'autorització:", response);
-                return;
-            }
-            // Guardem el token d'accés que ens retorna Google
-            accessToken = response.access_token;
-            localStorage.setItem("usuari_loguejat", "true");
-            
-            document.getElementById("login-container").style.display = "none";
-            document.getElementById("app-container").classList.remove("hidden");
-            carregarEsdevenimentsAutocompletar();
-        }
-    });
-    gsiIniciat = true;
-};
-
-// ==========================================
-// COMUNICACIÓ AMB GOOGLE APPS SCRIPT
-// ==========================================
-function carregarEsdevenimentsAutocompletar() {
-    // Si tenim el token, l'adjuntem a la petició GET
-    let url = `${URL_APPLICACIO}?accio=obtenir`;
-    if (accessToken) {
-        url += `&access_token=${accessToken}`;
-    }
-
-    fetch(url, { method: 'GET' })
-        .then(response => response.text())
-        .then(data => {
-            console.log("Dades carregades correctament.");
-        })
-        .catch(error => {
-            console.warn("Avís en carregar dades:", error);
-        });
-}
-
-function gestionarEnviament(e, tipusFormulari) {
+async function gestionarEnviament(e, tipusFormulari) {
     e.preventDefault();
 
     let dadesRegistre = {};
 
     if (tipusFormulari === 'esdeveniment') {
         dadesRegistre = {
-            tipusRegistre: "esdeveniment",
-            dataHora: document.getElementById("dataEsdeveniment").value,
-            valor: document.getElementById("inputEsdeveniment").value,
+            data_hora: document.getElementById("dataEsdeveniment").value,
+            tipus_registre: "esdeveniment",
+            valor: document.getElementById("inputEsdeveniment").value.trim(),
+            intensitat: null,
+            medicacio: null,
             observacions: document.getElementById("obsEsdeveniment").value
         };
     } else {
         dadesRegistre = {
-            tipusRegistre: "maldecap",
-            dataHora: document.getElementById("dataMalDeCap").value,
-            valor: document.getElementById("inputTipus").value,
+            data_hora: document.getElementById("dataMalDeCap").value,
+            tipus_registre: "maldecap",
+            valor: document.getElementById("inputTipus").value.trim(),
             intensitat: document.getElementById("selectIntensitat").value,
-            medicacio: document.getElementById("checkMedicacio"].checked ? "Sí" : "No",
+            medicacio: document.getElementById("checkMedicacio").checked ? true : false,
             observacions: document.getElementById("obsMalDeCap").value
         };
     }
 
-    // Enviament mitjançant URLSearchParams (evita problemes de 401 Unauthorized i CORS de JSON)
-    const formData = new URLSearchParams();
-    formData.append("data", JSON.stringify(dadesRegistre));
+    try {
+        const { error } = await supabaseClient
+            .from('registres')
+            .insert([dadesRegistre]);
 
-    fetch(URL_APPLICACIO, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: formData
-    })
-    .then(() => {
-        alert("Registre desat correctament al teu Google Sheet!");
+        if (error) throw error;
+
+        mostrarMissatge("Registre desat correctament!", "success");
+        
         if (tipusFormulari === 'esdeveniment') {
             document.getElementById("formEsdeveniment").reset();
         } else {
             document.getElementById("formMalDeCap").reset();
         }
         establirDatesActuals();
-    })
-    .catch(error => {
+
+        // Actualitzem les llistes de manera dinàmica perquè el nou terme aparegui immediatament
+        carregarOpcionsDatalists();
+
+    } catch (error) {
         console.error("Error al desar:", error);
-        alert("S'ha produït un error de connexió amb Google Sheets.");
-    });
+        mostrarMissatge("Error en desar: " + error.message, "error");
+    }
+}
+
+async function descarregarCsvPropis() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('registres')
+            .select('*');
+
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            mostrarMissatge("No hi ha dades per descarregar.", "error");
+            return;
+        }
+
+        const capçaleres = Object.keys(data[0]);
+        let csvContent = capçaleres.join(",") + "\n";
+
+        data.forEach(fila => {
+            const valors = capçaleres.map(camp => {
+                let val = fila[camp] !== null ? fila[camp] : "";
+                return `"${String(val).replace(/"/g, '""')}"`;
+            });
+            csvContent += valors.join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'registres_salut_propi.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        mostrarMissatge("Dades descarregades correctament en CSV!", "success");
+
+    } catch (error) {
+        console.error("Error al baixar dades:", error);
+        mostrarMissatge("Error al descarregar les dades.", "error");
+    }
 }
