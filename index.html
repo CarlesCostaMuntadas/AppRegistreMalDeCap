@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registre mal de cap</title>
+    <!-- Script oficial de Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Estils externs -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Pantalla de Login inicial -->
+        <div id="loginScreen">
+            <h2>Registre mal de cap</h2>
+            <p>Inicia sessió amb el teu compte de Google per accedir al teu registre privat.</p>
+            <div id="buttonDiv"></div>
+        </div>
+
+        <!-- Aplicació principal -->
+        <div id="appContent" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="status-bar" id="statusBar">Connectat amb Google ✓</div>
+
+            <!-- Botons superiors per alternar entre panells -->
+            <div class="panel-nav">
+                <button class="nav-btn active" id="btnNavEsdeveniment" onclick="mostrarPanell('esdeveniment')">Esdeveniment</button>
+                <button class="nav-btn" id="btnNavMalDeCap" onclick="mostrarPanell('malDeCap')">Mal de cap</button>
+            </div>
+
+            <!-- Panell / Formulari Esdeveniment -->
+            <div class="card" id="formEsdeveniment">
+                <div class="field">
+                    <label for="dataEsdeveniment">Data i Hora</label>
+                    <input type="datetime-local" id="dataEsdeveniment">
+                </div>
+
+                <div class="field">
+                    <label for="inputEsdeveniment">Esdeveniment</label>
+                    <input type="text" id="inputEsdeveniment" placeholder="Ex: Iogurt, Córrer 5km, Estrès..." list="llistaEsdeveniments" autocomplete="off">
+                    <datalist id="llistaEsdeveniments">
+                        <option value="Iogurt">
+                        <option value="Cafè">
+                        <option value="Esport / Anar a córrer">
+                        <option value="Estrès laboral">
+                    </datalist>
+                </div>
+
+                <div class="field">
+                    <label for="obsEsdeveniment">Observacions (Opcional)</label>
+                    <textarea id="obsEsdeveniment" placeholder="Ex: Detalls, quantitat, intensitat..."></textarea>
+                </div>
+
+                <button class="primary" onclick="enviarEsdeveniment(this)">Desar esdeveniment</button>
+            </div>
+
+            <!-- Panell / Formulari Mal de cap -->
+            <div class="card hidden" id="formMalDeCap">
+                <div class="field">
+                    <label for="dataMalDeCap">Data i Hora</label>
+                    <input type="datetime-local" id="dataMalDeCap">
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="inputTipus">Tipus</label>
+                        <input type="text" id="inputTipus" placeholder="Tria o escriu..." list="llistaTipusMalDeCap" autocomplete="off">
+                        <datalist id="llistaTipusMalDeCap">
+                            <option value="Migranya amb aura">
+                            <option value="Espleni">
+                            <option value="Tensional">
+                        </datalist>
+                    </div>
+                    <div class="field">
+                        <label for="selectIntensitat">Intensitat</label>
+                        <select id="selectIntensitat">
+                            <option value="Lleuger">Lleuger</option>
+                            <option value="Moderat" selected>Moderat</option>
+                            <option value="Sever">Sever</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="checkbox-field">
+                        <input type="checkbox" id="checkMedicacio">
+                        <label for="checkMedicacio">He pres medicació</label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="obsMalDeCap">Observacions (Opcional)</label>
+                    <textarea id="obsMalDeCap" placeholder="Ex: Nom del medicament, part del cap..."></textarea>
+                </div>
+
+                <button class="primary" onclick="enviarMalDeCap(this)">Desar mal de cap</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Peu de pàgina -->
+    <footer>
+        <a href="https://www.carlescosta.cat" target="_blank" rel="noopener">Carles Costa i Muntadas</a> - Registre mal de cap
+    </footer>
+
+    <!-- Lògica JavaScript externa -->
+    <script src="script.js"></script>
+</body>
+</html>
