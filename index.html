@@ -14,14 +14,14 @@
     <div class="container">
         
         <!-- Pantalla de Login inicial -->
-		<div id="login-container">
-			<h2>Registre de Salut i Mal de Cap</h2>
-			<p>Inicia sessió amb el teu compte de Google per accedir al teu registre privat.</p>
-			<button id="btnLogin">Iniciar sessió amb Google</button>
-		</div>
+        <div id="login-container">
+            <h2>Registre de Salut i Mal de Cap</h2>
+            <p>Inicia sessió amb el teu compte de Google per accedir al teu registre privat.</p>
+            <button id="btnLogin" class="primary" style="margin-top: 15px; width: 100%;">Iniciar sessió amb Google</button>
+        </div>
 
         <!-- Aplicació principal -->
-        <div id="appContent" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
+        <div id="app-container" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
             <div class="status-bar" id="statusBar">Connectat amb Google ✓</div>
 
             <!-- Botons superiors per alternar entre panells -->
@@ -31,15 +31,15 @@
             </div>
 
             <!-- Panell / Formulari Esdeveniment -->
-            <div class="card" id="formEsdeveniment">
+            <form class="card" id="formEsdeveniment">
                 <div class="field">
                     <label for="dataEsdeveniment">Data i Hora</label>
-                    <input type="datetime-local" id="dataEsdeveniment">
+                    <input type="datetime-local" id="dataEsdeveniment" required>
                 </div>
 
                 <div class="field">
                     <label for="inputEsdeveniment">Esdeveniment</label>
-                    <input type="text" id="inputEsdeveniment" placeholder="Ex: Iogurt, Córrer 5km, Estrès..." list="llistaEsdeveniments" autocomplete="off">
+                    <input type="text" id="inputEsdeveniment" placeholder="Ex: Iogurt, Córrer 5km, Estrès..." list="llistaEsdeveniments" autocomplete="off" required>
                     <datalist id="llistaEsdeveniments">
                         <option value="Iogurt">
                         <option value="Cafè">
@@ -53,20 +53,20 @@
                     <textarea id="obsEsdeveniment" placeholder="Ex: Detalls, quantitat, intensitat..."></textarea>
                 </div>
 
-                <button class="primary" onclick="enviarEsdeveniment(this)">Desar esdeveniment</button>
-            </div>
+                <button type="submit" class="primary">Desar esdeveniment</button>
+            </form>
 
             <!-- Panell / Formulari Mal de cap -->
-            <div class="card hidden" id="formMalDeCap">
+            <form class="card hidden" id="formMalDeCap">
                 <div class="field">
                     <label for="dataMalDeCap">Data i Hora</label>
-                    <input type="datetime-local" id="dataMalDeCap">
+                    <input type="datetime-local" id="dataMalDeCap" required>
                 </div>
 
                 <div class="row">
                     <div class="field">
                         <label for="inputTipus">Tipus</label>
-                        <input type="text" id="inputTipus" placeholder="Tria o escriu..." list="llistaTipusMalDeCap" autocomplete="off">
+                        <input type="text" id="inputTipus" placeholder="Tria o escriu..." list="llistaTipusMalDeCap" autocomplete="off" required>
                         <datalist id="llistaTipusMalDeCap">
                             <option value="Migranya amb aura">
                             <option value="Espleni">
@@ -95,8 +95,8 @@
                     <textarea id="obsMalDeCap" placeholder="Ex: Nom del medicament, part del cap..."></textarea>
                 </div>
 
-                <button class="primary" onclick="enviarMalDeCap(this)">Desar mal de cap</button>
-            </div>
+                <button type="submit" class="primary">Desar mal de cap</button>
+            </form>
         </div>
     </div>
 

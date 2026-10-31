@@ -9,14 +9,50 @@ let gapiIniciat = false;
 let gsiIniciat = false;
 
 document.addEventListener("DOMContentLoaded", () => {
+    establirDatesActuals();
     inicialitzarEsdeveniments();
     
     // Si ja s'havia iniciat sessió abans, amaguem el login directament
     if (localStorage.getItem("usuari_loguejat") === "true") {
         document.getElementById("login-container").style.display = "none";
-        document.getElementById("app-container").style.display = "block";
+        document.getElementById("app-container").classList.remove("hidden");
     }
 });
+
+function establirDatesActuals() {
+    const ara = new Date();
+    // Format YYYY-MM-DDThh:mm
+    const offset = ara.getTimezoneOffset();
+    const dataLocal = new Date(ara.getTime() - (offset*60*1000)).toISOString().slice(0,16);
+    
+    const inputEsdeveniment = document.getElementById("dataEsdeveniment");
+    const inputMalDeCap = document.getElementById("dataMalDeCap");
+    
+    if (inputEsdeveniment) inputEsdeveniment.value = dataLocal;
+    if (inputMalDeCap) inputMalDeCap.value = dataLocal;
+}
+
+// ==========================================
+// NAVEGACIÓ ENTRE PANELLS
+// ==========================================
+window.mostrarPanell = function(panell) {
+    const formEsdeveniment = document.getElementById("formEsdeveniment");
+    const formMalDeCap = document.getElementById("formMalDeCap");
+    const btnNavEsdeveniment = document.getElementById("btnNavEsdeveniment");
+    const btnNavMalDeCap = document.getElementById("btnNavMalDeCap");
+
+    if (panell === 'esdeveniment') {
+        formEsdeveniment.classList.remove("hidden");
+        formMalDeCap.classList.add("hidden");
+        btnNavEsdeveniment.classList.add("active");
+        btnNavMalDeCap.classList.remove("active");
+    } else {
+        formMalDeCap.classList.remove("hidden");
+        formEsdeveniment.classList.add("hidden");
+        btnNavMalDeCap.classList.add("active");
+        btnNavEsdeveniment.classList.remove("active");
+    }
+};
 
 // ==========================================
 // AUTENTICACIÓ AMB GOOGLE
@@ -27,25 +63,29 @@ function inicialitzarEsdeveniments() {
         btnLogin.addEventListener("click", () => {
             if (tokenClient) {
                 tokenClient.requestAccessToken({ prompt: '' });
+            } else {
+                alert("El servei de Google encara s'està carregant. Torna-ho a provar en un segon.");
             }
         });
     }
 
-    const formulari = document.getElementById("formulariRegistre");
-    if (formulari) {
-        formulari.addEventListener("submit", gestionarEnviament);
+    const formEsdeveniment = document.getElementById("formEsdeveniment");
+    if (formEsdeveniment) {
+        formEsdeveniment.addEventListener("submit", (e) => gestionarEnviament(e, 'esdeveniment'));
+    }
+
+    const formMalDeCap = document.getElementById("formMalDeCap");
+    if (formMalDeCap) {
+        formMalDeCap.addEventListener("submit", (e) => gestionarEnviament(e, 'malDeCap'));
     }
 }
 
-function gapiLoaded() {
-    gapi.load('client', iniciarGapiClient);
-}
+// Funcions globals per a Google Identity Services
+window.gapiLoaded = function() {
+    gapi.load('client', () => { gapiIniciat = true; });
+};
 
-async function iniciarGapiClient() {
-    gapiIniciat = true;
-}
-
-function gisLoaded() {
+window.gisLoaded = function() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
@@ -54,22 +94,21 @@ function gisLoaded() {
                 console.error("Error d'autorització:", response);
                 return;
             }
-            // Guardem l'estat de la sessió
             localStorage.setItem("usuari_loguejat", "true");
             
             document.getElementById("login-container").style.display = "none";
-            document.getElementById("app-container").style.display = "block";
+            document.getElementById("app-container").classList.remove("hidden");
             carregarEsdevenimentsAutocompletar();
         }
     });
     gsiIniciat = true;
-}
+};
 
 // ==========================================
 // COMUNICACIÓ AMB GOOGLE APPS SCRIPT
 // ==========================================
 function carregarEsdevenimentsAutocompletar() {
-    fetch(`${URL_APPLICACIO}?accio=obtenir`)
+    fetch(`${URL_APPLICACIO}?accio=obtenir`, { method: 'GET' })
         .then(response => response.text())
         .then(data => {
             console.log("Dades carregades correctament.");
@@ -79,19 +118,30 @@ function carregarEsdevenimentsAutocompletar() {
         });
 }
 
-function gestionarEnviament(e) {
+function gestionarEnviament(e, tipusFormulari) {
     e.preventDefault();
 
-    const tipus = document.getElementById("tipusEsdeveniment").value;
-    const descripcio = document.getElementById("descripcio").value;
-    const data = document.getElementById("dataEsdeveniment").value;
+    let dadesRegistre = {};
 
-    const dadesRegistre = {
-        tipus: tipus,
-        descripcio: descripcio,
-        data: data,
-        timestamp: new Date().toISOString()
-    };
+    if (tipusFormulari === 'esdeveniment') {
+        dadesRegistre = {
+            tipusRegistre: "Esdeveniment",
+            data: document.getElementById("dataEsdeveniment").value,
+            valor: document.getElementById("inputEsdeveniment").value,
+            observacions: document.getElementById("obsEsdeveniment").value,
+            timestamp: new Date().toISOString()
+        };
+    } else {
+        dadesRegistre = {
+            tipusRegistre: "MalDeCap",
+            data: document.getElementById("dataMalDeCap").value,
+            valor: document.getElementById("inputTipus").value,
+            intensitat: document.getElementById("selectIntensitat").value,
+            medicacio: document.getElementById("checkMedicacio").checked ? "Sí" : "No",
+            observacions: document.getElementById("obsMalDeCap").value,
+            timestamp: new Date().toISOString()
+        };
+    }
 
     fetch(URL_APPLICACIO, {
         method: 'POST',
@@ -102,8 +152,13 @@ function gestionarEnviament(e) {
         body: JSON.stringify(dadesRegistre)
     })
     .then(() => {
-        alert("Esdeveniment desat correctament al teu Google Sheet!");
-        document.getElementById("formulariRegistre").reset();
+        alert("Registre desat correctament al teu Google Sheet!");
+        if (tipusFormulari === 'esdeveniment') {
+            document.getElementById("formEsdeveniment").reset();
+        } else {
+            document.getElementById("formMalDeCap").reset();
+        }
+        establirDatesActuals();
     })
     .catch(error => {
         console.error("Error al desar:", error);
