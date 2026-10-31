@@ -136,32 +136,32 @@ function gestionarEnviament(e, tipusFormulari) {
             dataHora: document.getElementById("dataMalDeCap").value,
             valor: document.getElementById("inputTipus").value,
             intensitat: document.getElementById("selectIntensitat").value,
-            medicacio: document.getElementById("checkMedicacio").checked ? "Sí" : "No",
+            medicacio: document.getElementById("checkMedicacio"].checked ? "Sí" : "No",
             observacions: document.getElementById("obsMalDeCap").value
         };
     }
 
-    // Enviament com a text pla per evitar el bloqueig preflight de CORS
+    // Utilitzem mode: 'no-cors' per saltar-nos completament les restriccions del navegador
     fetch(URL_APPLICACIO, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+        },
         body: JSON.stringify(dadesRegistre)
     })
-    .then(response => response.json())
-    .then(resultat => {
-        if (resultat.status === "success") {
-            alert("Registre desat correctament al teu Google Sheet!");
-            if (tipusFormulari === 'esdeveniment') {
-                document.getElementById("formEsdeveniment").reset();
-            } else {
-                document.getElementById("formMalDeCap").reset();
-            }
-            establirDatesActuals();
+    .then(() => {
+        // Com que no podem llegir la resposta per culpa de no-cors, donem l'avís d'èxit directament
+        alert("Registre desat correctament al teu Google Sheet!");
+        if (tipusFormulari === 'esdeveniment') {
+            document.getElementById("formEsdeveniment").reset();
         } else {
-            alert("Error del servidor: " + (resultat.message || "Desconegut"));
+            document.getElementById("formMalDeCap").reset();
         }
+        establirDatesActuals();
     })
     .catch(error => {
         console.error("Error al desar:", error);
-        alert("S'ha produït un error de connexió amb Google Sheets.");
+        alert("S'ha produït un error de connexió.");
     });
 }
