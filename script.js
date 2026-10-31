@@ -10,6 +10,12 @@ let gsiIniciat = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     inicialitzarEsdeveniments();
+    
+    // Si ja s'havia iniciat sessió abans, amaguem el login directament
+    if (localStorage.getItem("usuari_loguejat") === "true") {
+        document.getElementById("login-container").style.display = "none";
+        document.getElementById("app-container").style.display = "block";
+    }
 });
 
 // ==========================================
@@ -20,7 +26,7 @@ function inicialitzarEsdeveniments() {
     if (btnLogin) {
         btnLogin.addEventListener("click", () => {
             if (tokenClient) {
-                tokenClient.requestAccessToken({ prompt: 'consent' });
+                tokenClient.requestAccessToken({ prompt: '' });
             }
         });
     }
@@ -31,14 +37,12 @@ function inicialitzarEsdeveniments() {
     }
 }
 
-// Aquesta funció es crida automàticament quan carreguen les llibreries de Google
 function gapiLoaded() {
     gapi.load('client', iniciarGapiClient);
 }
 
 async function iniciarGapiClient() {
     gapiIniciat = true;
-    comprovarIniciacio();
 }
 
 function gisLoaded() {
@@ -50,34 +54,28 @@ function gisLoaded() {
                 console.error("Error d'autorització:", response);
                 return;
             }
+            // Guardem l'estat de la sessió
+            localStorage.setItem("usuari_loguejat", "true");
+            
             document.getElementById("login-container").style.display = "none";
             document.getElementById("app-container").style.display = "block";
             carregarEsdevenimentsAutocompletar();
         }
     });
     gsiIniciat = true;
-    comprovarIniciacio();
-}
-
-function comprovarIniciacio() {
-    if (gapiIniciat && gsiIniciat) {
-        console.log("Serveis de Google carregats correctament.");
-    }
 }
 
 // ==========================================
 // COMUNICACIÓ AMB GOOGLE APPS SCRIPT
 // ==========================================
-
 function carregarEsdevenimentsAutocompletar() {
-    // Petició GET per carregar dades si cal
     fetch(`${URL_APPLICACIO}?accio=obtenir`)
         .then(response => response.text())
         .then(data => {
             console.log("Dades carregades correctament.");
         })
         .catch(error => {
-            console.warn("Avís en carregar dades (pot ser ignorat si és la primera execució):", error);
+            console.warn("Avís en carregar dades:", error);
         });
 }
 
@@ -95,7 +93,6 @@ function gestionarEnviament(e) {
         timestamp: new Date().toISOString()
     };
 
-    // Utilitzem mode: 'no-cors' per evitar el bloqueig de CORS per part del navegador
     fetch(URL_APPLICACIO, {
         method: 'POST',
         mode: 'no-cors',
