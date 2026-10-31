@@ -139,25 +139,19 @@ function gestionarEnviament(e, tipusFormulari) {
             dataHora: document.getElementById("dataMalDeCap").value,
             valor: document.getElementById("inputTipus").value,
             intensitat: document.getElementById("selectIntensitat").value,
-            medicacio: document.getElementById("checkMedicacio").checked ? "Sí" : "No",
+            medicacio: document.getElementById("checkMedicacio"].checked ? "Sí" : "No",
             observacions: document.getElementById("obsMalDeCap").value
         };
     }
 
-    // Construïm la URL de destinació afegint el token d'accés si el tenim
-    let urlDestinacio = URL_APPLICACIO;
-    if (accessToken) {
-        urlDestinacio += `?access_token=${accessToken}`;
-    }
+    // Enviament mitjançant URLSearchParams (evita problemes de 401 Unauthorized i CORS de JSON)
+    const formData = new URLSearchParams();
+    formData.append("data", JSON.stringify(dadesRegistre));
 
-    // Enviament mitjançant text pla amb no-cors passant el token per URL
-    fetch(urlDestinacio, {
+    fetch(URL_APPLICACIO, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify(dadesRegistre)
+        body: formData
     })
     .then(() => {
         alert("Registre desat correctament al teu Google Sheet!");
