@@ -5,8 +5,8 @@ const CLIENT_ID = "297457545292-bhvfq7mauqevmm22d8rd34pk9fjeg7oq.apps.googleuser
 const URL_APPLICACIO = "https://script.google.com/macros/s/AKfycbytoJOD-aciPSmj1Fi3RqM9VObvr3WBfC1RBtzteA-6AfcQ8sqhLXG2yzo-lkJkPd1w/exec";
 
 let tokenClient;
-let gapiIniciat = false;
 let gsiIniciat = false;
+let accessToken = null; // Guardarem aquí el token d'accés de Google
 
 document.addEventListener("DOMContentLoaded", () => {
     establirDatesActuals();
@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function establirDatesActuals() {
     const ara = new Date();
-    // Format YYYY-MM-DDThh:mm
     const offset = ara.getTimezoneOffset();
     const dataLocal = new Date(ara.getTime() - (offset*60*1000)).toISOString().slice(0,16);
     
@@ -80,11 +79,7 @@ function inicialitzarEsdeveniments() {
     }
 }
 
-// Funcions globals per a Google Identity Services
-window.gapiLoaded = function() {
-    gapi.load('client', () => { gapiIniciat = true; });
-};
-
+// Funció global per a Google Identity Services
 window.gisLoaded = function() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
@@ -94,6 +89,8 @@ window.gisLoaded = function() {
                 console.error("Error d'autorització:", response);
                 return;
             }
+            // Guardem el token d'accés que ens retorna Google
+            accessToken = response.access_token;
             localStorage.setItem("usuari_loguejat", "true");
             
             document.getElementById("login-container").style.display = "none";
@@ -108,7 +105,13 @@ window.gisLoaded = function() {
 // COMUNICACIÓ AMB GOOGLE APPS SCRIPT
 // ==========================================
 function carregarEsdevenimentsAutocompletar() {
-    fetch(`${URL_APPLICACIO}?accio=obtenir`, { method: 'GET' })
+    // Si tenim el token, l'adjuntem a la petició GET
+    let url = `${URL_APPLICACIO}?accio=obtenir`;
+    if (accessToken) {
+        url += `&access_token=${accessToken}`;
+    }
+
+    fetch(url, { method: 'GET' })
         .then(response => response.text())
         .then(data => {
             console.log("Dades carregades correctament.");
@@ -132,17 +135,23 @@ function gestionarEnviament(e, tipusFormulari) {
         };
     } else {
         dadesRegistre = {
-            tipusRegistre: "malDeCap",
+            tipusRegistre: "maldecap",
             dataHora: document.getElementById("dataMalDeCap").value,
             valor: document.getElementById("inputTipus").value,
             intensitat: document.getElementById("selectIntensitat").value,
-            medicacio: document.getElementById("checkMedicacio"].checked ? "Sí" : "No",
+            medicacio: document.getElementById("checkMedicacio").checked ? "Sí" : "No",
             observacions: document.getElementById("obsMalDeCap").value
         };
     }
 
-    // Utilitzem mode: 'no-cors' per saltar-nos completament les restriccions del navegador
-    fetch(URL_APPLICACIO, {
+    // Construïm la URL de destinació afegint el token d'accés si el tenim
+    let urlDestinacio = URL_APPLICACIO;
+    if (accessToken) {
+        urlDestinacio += `?access_token=${accessToken}`;
+    }
+
+    // Enviament mitjançant text pla amb no-cors passant el token per URL
+    fetch(urlDestinacio, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -151,7 +160,6 @@ function gestionarEnviament(e, tipusFormulari) {
         body: JSON.stringify(dadesRegistre)
     })
     .then(() => {
-        // Com que no podem llegir la resposta per culpa de no-cors, donem l'avís d'èxit directament
         alert("Registre desat correctament al teu Google Sheet!");
         if (tipusFormulari === 'esdeveniment') {
             document.getElementById("formEsdeveniment").reset();
@@ -162,6 +170,6 @@ function gestionarEnviament(e, tipusFormulari) {
     })
     .catch(error => {
         console.error("Error al desar:", error);
-        alert("S'ha produït un error de connexió.");
+        alert("S'ha produït un error de connexió amb Google Sheets.");
     });
 }
