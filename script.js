@@ -125,43 +125,43 @@ function gestionarEnviament(e, tipusFormulari) {
 
     if (tipusFormulari === 'esdeveniment') {
         dadesRegistre = {
-            tipusRegistre: "Esdeveniment",
-            data: document.getElementById("dataEsdeveniment").value,
+            tipusRegistre: "esdeveniment",
+            dataHora: document.getElementById("dataEsdeveniment").value,
             valor: document.getElementById("inputEsdeveniment").value,
-            observacions: document.getElementById("obsEsdeveniment").value,
-            timestamp: new Date().toISOString()
+            observacions: document.getElementById("obsEsdeveniment").value
         };
     } else {
         dadesRegistre = {
-            tipusRegistre: "MalDeCap",
-            data: document.getElementById("dataMalDeCap").value,
+            tipusRegistre: "malDeCap",
+            dataHora: document.getElementById("dataMalDeCap").value,
             valor: document.getElementById("inputTipus").value,
             intensitat: document.getElementById("selectIntensitat").value,
             medicacio: document.getElementById("checkMedicacio").checked ? "Sí" : "No",
-            observacions: document.getElementById("obsMalDeCap").value,
-            timestamp: new Date().toISOString()
+            observacions: document.getElementById("obsMalDeCap").value
         };
     }
 
+    // Enviament com a text pla per evitar el bloqueig preflight de CORS
     fetch(URL_APPLICACIO, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-        },
         body: JSON.stringify(dadesRegistre)
     })
-    .then(() => {
-        alert("Registre desat correctament al teu Google Sheet!");
-        if (tipusFormulari === 'esdeveniment') {
-            document.getElementById("formEsdeveniment").reset();
+    .then(response => response.json())
+    .then(resultat => {
+        if (resultat.status === "success") {
+            alert("Registre desat correctament al teu Google Sheet!");
+            if (tipusFormulari === 'esdeveniment') {
+                document.getElementById("formEsdeveniment").reset();
+            } else {
+                document.getElementById("formMalDeCap").reset();
+            }
+            establirDatesActuals();
         } else {
-            document.getElementById("formMalDeCap").reset();
+            alert("Error del servidor: " + (resultat.message || "Desconegut"));
         }
-        establirDatesActuals();
     })
     .catch(error => {
         console.error("Error al desar:", error);
-        alert("S'ha produït un error en intentar desar les dades.");
+        alert("S'ha produït un error de connexió amb Google Sheets.");
     });
 }
