@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadístiques i Correlacions - Mal de Cap</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="stats.css">
+</head>
+<body>
+    <div class="container" style="max-width: 1000px;">
+        <header class="app-header">
+            <h1 style="display: flex; align-items: center; gap: 10px; font-size: 1.25rem; margin:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                Panell d'Estadístiques
+            </h1>
+            <a href="index.html" class="icon-text-btn" style="text-decoration: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Tornar al Registre
+            </a>
+        </header>
+
+        <!-- Barra de filtres avançats -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="selectPeridiode">Període temporal</label>
+                <select id="selectPeridiode" onchange="aplicarFiltresTempsPredefinits()">
+                    <option value="tots" selected>Històric sencer</option>
+                    <option value="3mesos">Últims 3 mesos</option>
+                    <option value="6mesos">Últims 6 mesos</option>
+                    <option value="1any">Últim any</option>
+                    <option value="personalitzat">Rang personalitzat</option>
+                </select>
+            </div>
+            
+            <div class="filter-group" id="grupDataInici" style="display: none;">
+                <label for="dataInici">Des de</label>
+                <input type="date" id="dataInici" onchange="actualitzarEstadistiques()">
+            </div>
+
+            <div class="filter-group" id="grupDataFi" style="display: none;">
+                <label for="dataFi">Fins a</label>
+                <input type="date" id="dataFi" onchange="actualitzarEstadistiques()">
+            </div>
+
+            <div class="filter-group">
+                <label for="selectMedicacio">Estat de medicació</label>
+                <select id="selectMedicacio" onchange="actualitzarEstadistiques()">
+                    <option value="tots" selected>Tots els registres</option>
+                    <option value="amb">Només amb medicació</option>
+                    <option value="sense">Només sense medicació</option>
+                </select>
+            </div>
+
+            <!-- Filtre Múltiple: Intensitat -->
+            <div class="filter-group dropdown-filter-container">
+                <label>Intensitat</label>
+                <div class="dropdown-select-btn" onclick="toggleDropdown('dropdownIntensitat')">
+                    <span id="txtIntensitatSel">Totes les intensitats</span> ▾
+                </div>
+                <div id="dropdownIntensitat" class="dropdown-content hidden">
+                    <label><input type="checkbox" value="tots" checked onchange="marcarTotsCheckbox(this, 'chkIntensitat')"> <strong>Totes</strong></label>
+                    <hr style="margin: 4px 0; border:0; border-top:1px solid var(--border);">
+                    <label><input type="checkbox" class="chkIntensitat" value="Lleuger" checked onchange="actualitzarEstadistiques()"> Lleuger</label>
+                    <label><input type="checkbox" class="chkIntensitat" value="Moderat" checked onchange="actualitzarEstadistiques()"> Moderat</label>
+                    <label><input type="checkbox" class="chkIntensitat" value="Sever" checked onchange="actualitzarEstadistiques()"> Sever</label>
+                </div>
+            </div>
+
+            <!-- Filtre Múltiple: Tipus de mal de cap -->
+            <div class="filter-group dropdown-filter-container">
+                <label>Tipus de mal de cap</label>
+                <div class="dropdown-select-btn" onclick="toggleDropdown('dropdownTipus')">
+                    <span id="txtTipusSel">Tots els tipus</span> ▾
+                </div>
+                <div id="dropdownTipus" class="dropdown-content hidden">
+                    <label><input type="checkbox" value="tots" checked onchange="marcarTotsCheckbox(this, 'chkTipus')"> <strong>Tots</strong></label>
+                    <hr style="margin: 4px 0; border:0; border-top:1px solid var(--border);">
+                    <div id="containerCheckboxesTipus">
+                        <!-- Es carregarà dinàmicament segons els tipus registrats -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading-box">Carregant dades i analitzant patrons...</div>
+
+        <div id="stats-content" class="hidden app-layout" style="gap: 20px;">
+            
+            <!-- Mètrica destacada: Rècord sense medicació -->
+            <div class="metric-highlight">
+                <span class="metric-title" style="display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Període més llarg sense medicació
+                </span>
+                <span id="txtMaxDiesSenseMed" class="metric-value">0 dies</span>
+            </div>
+
+            <!-- Gràfics d'evolució temporal -->
+            <div class="stat-card" style="margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                        Evolució per Mesos
+                    </h3>
+                    <span id="totalMesos" class="badge-total">Total: 0</span>
+                </div>
+                <div id="vchart-mesos" style="width: 100%; overflow-x: auto;"></div>
+            </div>
+
+            <div class="stat-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+                        Evolució per Setmanes Naturals (Dilluns - Diumenge)
+                    </h3>
+                    <span id="totalSetmanes" class="badge-total">Total: 0</span>
+                </div>
+                <div id="vchart-setmanes" style="width: 100%; overflow-x: auto;"></div>
+            </div>
+
+            <div class="stat-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Evolució per Dies
+                    </h3>
+                    <span id="totalDies" class="badge-total">Total: 0</span>
+                </div>
+                <div id="vchart-dies" style="width: 100%; overflow-x: auto;"></div>
+            </div>
+
+            <!-- Distribució amb les icones SVG originals recuperades i totals -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+                            Dies de la setmana
+                        </h3>
+                        <span id="totalCardDies" class="badge-total" style="font-size: 0.75rem;">Total: 0</span>
+                    </div>
+                    <div id="chart-dies"></div>
+                </div>
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Franja horària
+                        </h3>
+                        <span id="totalCardHores" class="badge-total" style="font-size: 0.75rem;">Total: 0</span>
+                    </div>
+                    <div id="chart-hores"></div>
+                </div>
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h2"/><path d="M6 10h2"/></svg>
+                            Acumulat per Mesos
+                        </h3>
+                        <span id="totalCardMesos" class="badge-total" style="font-size: 0.75rem;">Total: 0</span>
+                    </div>
+                    <div id="chart-mesos"></div>
+                </div>
+            </div>
+
+            <!-- Bloc de Correlacions -->
+            <div class="stat-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <h3 style="margin-bottom: 4px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            Correlació per tipus de mal de cap i aliments
+                        </h3>
+                        <p id="subtitolCorrelacio" style="font-size: 0.85rem; color: var(--text-light); margin: 0;"></p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; background: var(--bg); padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border);">
+                        <label for="inputHoresPrebies" style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); margin: 0;">Hores prèvies:</label>
+                        <input type="number" id="inputHoresPrebies" value="8" min="1" max="72" style="width: 60px; padding: 4px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.9rem; text-align: center; background: white; outline: none;" onchange="actualitzarEstadistiques()">
+                    </div>
+                </div>
+                
+                <div id="list-correlacions-per-tipus" style="display: flex; flex-direction: column; gap: 16px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://www.carlescosta.cat" target="_blank" rel="noopener">Carles Costa i Muntadas</a> - Estadístiques
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="stats.js"></script>
+</body>
+</html>
