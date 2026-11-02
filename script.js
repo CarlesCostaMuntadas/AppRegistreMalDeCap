@@ -152,7 +152,7 @@ async function carregarUltimsRegistres() {
         const { data, error } = await supabaseClient
             .from('registres')
             .select('*')
-            .order('data_hora', { ascending: false })
+            .order('id', { ascending: false })
             .limit(limit);
 
         if (error) throw error;
