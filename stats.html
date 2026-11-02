@@ -87,13 +87,47 @@
 
         <div id="stats-content" class="hidden app-layout" style="gap: 20px;">
             
-            <!-- Mètrica destacada: Rècord sense medicació -->
-            <div class="metric-highlight">
-                <span class="metric-title" style="display: flex; align-items: center; gap: 8px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    Període més llarg sense medicació
-                </span>
-                <span id="txtMaxDiesSenseMed" class="metric-value">0 dies</span>
+            <!-- Mètriques destacades (Rècord sense medicació + Mitjana medicació per mes) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div class="metric-highlight" style="margin-top: 0;">
+                    <span class="metric-title" style="display: flex; align-items: center; gap: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Període més llarg sense medicació
+                    </span>
+                    <span id="txtMaxDiesSenseMed" class="metric-value">0 dies</span>
+                </div>
+				<div class="metric-highlight" style="margin-top: 0; background: #f0fdf4; border-color: #bbf7d0;">
+					<span class="metric-title" style="display: flex; align-items: center; gap: 8px; color: #166534;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success);"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+						Mitjana medicació / mes
+					</span>
+					<span id="txtMitjanaMedicacio" class="metric-value" style="color: var(--success);">0.0 / mes</span>
+				</div>
+            </div>
+
+            <!-- Gràfics Superiors en formatget: Tipology i Intensitat -->
+            <div class="stats-grid" style="margin-top: 0;">
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><path d="M21.21 15.89A10 10 0 1 1 8.11 2.79"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                            Tipologia de mal de cap
+                        </h3>
+                        <span id="totalCardTipologia" class="badge-total" style="font-size: 0.75rem;">Total: 0</span>
+                    </div>
+                    <div id="chart-tipologia" style="display: flex; flex-direction: column; align-items: center; gap: 14px;"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><path d="M21.21 15.89A10 10 0 1 1 8.11 2.79"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                            Intensitat dels episodis
+                        </h3>
+                        <span id="totalCardIntensitat" class="badge-total" style="font-size: 0.75rem;">Total: 0</span>
+                    </div>
+                    <div id="chart-intensitat" style="display: flex; flex-direction: column; align-items: center; gap: 14px;"></div>
+                </div>
             </div>
 
             <!-- Gràfics d'evolució temporal -->
@@ -130,7 +164,7 @@
                 <div id="vchart-dies" style="width: 100%; overflow-x: auto;"></div>
             </div>
 
-            <!-- Distribució amb les icones SVG originals recuperades i totals -->
+            <!-- Distribució (Dies, Franges, Mesos) -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">

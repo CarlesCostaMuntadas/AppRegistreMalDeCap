@@ -187,13 +187,36 @@ function actualitzarEstadistiques() {
     }
 
     calcularPeriodeSenseMedicacio(malsDeCap);
+    calcularMitjanaMedicacioPerMes(malsDeCap, minDateFiltre, maxDateFiltre);
 
-    // Actualitzar gràfics d'evolució temporal
+    // 1. Formatget per a tipologies
+    const comptadorTipologia = {};
+    malsDeCap.forEach(r => {
+        comptadorTipologia[r.valor] = (comptadorTipologia[r.valor] || 0) + 1;
+    });
+    renderitzarGraficFormatget('chart-tipologia', comptadorTipologia, 'episodis', 'totalCardTipologia');
+
+    // 2. Formatget per a intensitats (amb colors personalitzats)
+    const comptadorIntensitat = {};
+    malsDeCap.forEach(r => {
+        if (r.intensitat) {
+            comptadorIntensitat[r.intensitat] = (comptadorIntensitat[r.intensitat] || 0) + 1;
+        }
+    });
+    // Color predefinit segons la gravetat
+    const colorsIntensitat = {
+        'Lleuger': '#34d399', // verd
+        'Moderat': '#fbbf24', // groc/taronja
+        'Sever': '#f87171'    // vermell
+    };
+    renderitzarGraficFormatget('chart-intensitat', comptadorIntensitat, 'episodis', 'totalCardIntensitat', colorsIntensitat);
+
+    // Evolució temporal
     renderitzarGraficEvolucioContinua('vchart-mesos', malsDeCap, 'mes', minDateFiltre, maxDateFiltre, 'totalMesos');
     renderitzarGraficEvolucioContinua('vchart-setmanes', malsDeCap, 'setmana', minDateFiltre, maxDateFiltre, 'totalSetmanes');
     renderitzarGraficEvolucioContinua('vchart-dies', malsDeCap, 'dia', minDateFiltre, maxDateFiltre, 'totalDies');
 
-    // 1. Dies de la setmana
+    // Dies de la setmana
     const diesSetmana = ['Diumenge', 'Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte'];
     const comptadorDies = {};
     malsDeCap.forEach(r => {
@@ -202,7 +225,7 @@ function actualitzarEstadistiques() {
     });
     renderitzarGraficBarres('chart-dies', comptadorDies, 'episodis', 'totalCardDies');
 
-    // 2. Franges horàries
+    // Franges horàries
     const comptadorHores = { 'Matí (06h - 12h)': 0, 'Migdia (12h - 17h)': 0, 'Tarda (17h - 21h)': 0, 'Nit (21h - 06h)': 0 };
     malsDeCap.forEach(r => {
         const hora = new Date(r.data_hora).getHours();
@@ -213,7 +236,7 @@ function actualitzarEstadistiques() {
     });
     renderitzarGraficBarres('chart-hores', comptadorHores, 'episodis', 'totalCardHores');
 
-    // 3. Mesos acumulats
+    // Mesos acumulats
     const nomsMesos = ['Gener', 'Febrer', 'Març', 'Abril', 'Maig', 'Juny', 'Juliol', 'Agost', 'Setembre', 'Octubre', 'Novembre', 'Desembre'];
     const comptadorMesos = {};
     malsDeCap.forEach(r => {
@@ -222,7 +245,7 @@ function actualitzarEstadistiques() {
     });
     renderitzarGraficBarres('chart-mesos', comptadorMesos, 'episodis', 'totalCardMesos');
 
-    // 4. Correlacions per tipus
+    // Correlacions per tipus
     const containerCorrelacions = document.getElementById('list-correlacions-per-tipus');
     containerCorrelacions.innerHTML = '';
     const tipusUnicsActius = [...new Set(malsDeCap.map(m => m.valor))];
@@ -288,6 +311,94 @@ function calcularPeriodeSenseMedicacio(malsDeCap) {
     });
 
     element.textContent = maxDies > 0 ? `${maxDies} dies` : "Cap període registrat";
+}
+
+// CÀLCUL REVISAT: Mitjana de medicació per MES
+function calcularMitjanaMedicacioPerMes(malsDeCap, dataInici, dataFi) {
+    const element = document.getElementById('txtMitjanaMedicacio');
+    if (!element) return;
+
+    const totalMedicacions = malsDeCap.filter(r => r.medicacio).length;
+    
+    // Calculem el total de dies del període seleccionat
+    const diffTempsMS = Math.abs(dataFi - dataInici);
+    const totalDies = Math.max(diffTempsMS / (1000 * 60 * 60 * 24), 1);
+    
+    // Un mes té aproximadament 30.4375 dies
+    const totalMesos = Math.max(totalDies / 30.4375, 1);
+
+    const mitjanaMes = totalMedicacions / totalMesos;
+    
+    // Format net: si és sencer o té decimals (ex: 2.5 / mes)
+    element.textContent = `${mitjanaMes.toFixed(1)} / mes`;
+}
+
+function renderitzarGraficFormatget(containerId, dades, etiqueta, totalElementId, mapaColorsPersonalitzat = null) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    const ordenats = Object.entries(dades).sort((a, b) => b[1] - a[1]);
+    let sumaTotal = 0;
+    ordenats.forEach(([_, val]) => sumaTotal += val);
+
+    if (totalElementId) {
+        const badge = document.getElementById(totalElementId);
+        if (badge) badge.textContent = `Total: ${sumaTotal}`;
+    }
+
+    if (ordenats.length === 0 || sumaTotal === 0) {
+        container.innerHTML = '<em style="font-size:0.9rem; color:var(--text-light); padding: 20px;">Sense dades disponibles</em>';
+        return;
+    }
+
+    const paletteDefault = ['#2563eb', '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fb7185', '#34d399'];
+
+    let svgHtml = `<svg width="140" height="140" viewBox="0 0 42 42" style="transform: rotate(-90deg);">`;
+    let acumulat = 0;
+
+    ordenats.forEach(([clau, valor], index) => {
+        const percentatge = (valor / sumaTotal) * 100;
+        const color = (mapaColorsPersonalitzat && mapaColorsPersonalitzat[clau]) 
+            ? mapaColorsPersonalitzat[clau] 
+            : paletteDefault[index % paletteDefault.length];
+        
+        svgHtml += `
+            <circle cx="21" cy="21" r="15.9155" fill="transparent" 
+                stroke="${color}" stroke-width="5" 
+                stroke-dasharray="${percentatge} ${100 - percentatge}" 
+                stroke-dashoffset="-${acumulat}">
+            </circle>
+        `;
+        acumulat += percentatge;
+    });
+
+    svgHtml += `</svg>`;
+
+    let llegendaHtml = `<div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">`;
+    ordenats.forEach(([clau, valor], index) => {
+        const color = (mapaColorsPersonalitzat && mapaColorsPersonalitzat[clau]) 
+            ? mapaColorsPersonalitzat[clau] 
+            : paletteDefault[index % paletteDefault.length];
+        const percentatge = ((valor / sumaTotal) * 100).toFixed(1);
+        llegendaHtml += `
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                <span style="display: flex; align-items: center; gap: 6px; color: var(--text);">
+                    <span style="width: 10px; height: 10px; background: ${color}; border-radius: 50%; display: inline-block;"></span>
+                    ${clau}
+                </span>
+                <span style="color: var(--text-light); font-weight: 600;">${valor} (${percentatge}%)</span>
+            </div>
+        `;
+    });
+    llegendaHtml += `</div>`;
+
+    container.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%;">
+            ${svgHtml}
+            ${llegendaHtml}
+        </div>
+    `;
 }
 
 function renderitzarGraficEvolucioContinua(containerId, malsDeCap, tipusAgrupacio, dataInici, dataFi, totalElementId) {
