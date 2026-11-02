@@ -389,3 +389,50 @@ footer a:hover {
     color: #991b1b;
     border: 1.5px solid #fecaca;
 }
+/* Estils per a la taula d'últims registres */
+.recent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+    margin-top: 4px;
+}
+
+.recent-table th {
+    background: #f1f5f9;
+    color: var(--text-light);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    padding: 8px 10px;
+    border-bottom: 1.5px solid var(--border);
+    letter-spacing: 0.5px;
+}
+
+.recent-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+.recent-table tr:hover {
+    background-color: #f8fafc;
+}
+
+.badge-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-esdeveniment {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.badge-maldecap {
+    background: #fee2e2;
+    color: #991b1b;
+}

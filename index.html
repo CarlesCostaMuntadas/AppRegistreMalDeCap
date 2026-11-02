@@ -152,6 +152,36 @@
 
                 <button type="submit" class="primary">Desar mal de cap</button>
             </form>
+
+            <!-- TARGETA NOU: ÚLTIMS REGISTRES INTRODUÏTS -->
+            <div class="card" id="cardUltimsRegistres">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: -4px;">
+                    <h3 style="font-size: 1rem; color: var(--text); margin: 0; font-weight: 700;">Últims registres</h3>
+                    <select id="selectLimitRegistres" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onchange="carregarUltimsRegistres()">
+                        <option value="5">Últims 5</option>
+                        <option value="10" selected>Últims 10</option>
+                        <option value="20">Últims 20</option>
+                        <option value="50">Últims 50</option>
+                    </select>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="recent-table">
+                        <thead>
+                            <tr>
+                                <th>Data i Hora</th>
+                                <th>Tipus</th>
+                                <th>Detall / Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taulaUltimsRegistresBody">
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: var(--text-light); padding: 12px;">Carregant registres...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 

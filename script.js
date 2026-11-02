@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 formLogin.reset();
                 gestionarEstatSessio(data.session);
                 carregarOpcionsDatalists(); // Carregar llistes un cop dins
+                carregarUltimsRegistres();  // Carregar taula recent
             }
         });
     }
@@ -78,9 +79,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     establirDatesActuals();
     inicialitzarEsdeveniments();
 
-    // Si ja hi havia una sessió activa en carregar la pàgina, carreguem les llistes
+    // Si ja hi havia una sessió activa en carregar la pàgina, carreguem les llistes i la taula
     if (session) {
         carregarOpcionsDatalists();
+        carregarUltimsRegistres();
     }
 });
 
@@ -140,6 +142,68 @@ async function carregarOpcionsDatalists() {
 
     } catch (err) {
         console.error("Error carregant les llistes dinàmiques:", err);
+    }
+}
+
+// ==========================================
+// CARREGAR ÚLTIMS REGISTRES A LA TAULA
+// ==========================================
+async function carregarUltimsRegistres() {
+    const tbody = document.getElementById("taulaUltimsRegistresBody");
+    if (!tbody) return;
+
+    const limitSelect = document.getElementById("selectLimitRegistres");
+    const limit = limitSelect ? parseInt(limitSelect.value) : 10;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('registres')
+            .select('*')
+            .order('data_hora', { ascending: false })
+            .limit(limit);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-light); padding: 12px;">Encara no hi ha registres.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        data.forEach(r => {
+            const tr = document.createElement("tr");
+
+            // Format de data i hora més llegible (DD/MM/YYYY HH:MM)
+            let dataFormatejada = r.data_hora;
+            try {
+                const d = new Date(r.data_hora);
+                dataFormatejada = d.toLocaleString('ca-ES', { 
+                    day: '2-digit', month: '2-digit', year: 'numeric', 
+                    hour: '2-digit', minute: '2-digit' 
+                });
+            } catch (e) {}
+
+            let tipusBadge = '';
+            let detallText = r.valor || '-';
+
+            if (r.tipus_registre === 'esdeveniment') {
+                tipusBadge = `<span class="badge-tag badge-esdeveniment">Aliment/Activitat</span>`;
+            } else {
+                tipusBadge = `<span class="badge-tag badge-maldecap">Mal de cap</span>`;
+                detallText = `<strong>${r.valor}</strong> (${r.intensitat}${r.medicacio ? ', amb medicació' : ''})`;
+            }
+
+            tr.innerHTML = `
+                <td style="white-space: nowrap; color: var(--text-light); font-size: 0.8rem;">${dataFormatejada}</td>
+                <td>${tipusBadge}</td>
+                <td>${detallText}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error("Error en carregar l'historial recent:", err);
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #dc2626; padding: 12px;">Error al carregar les dades.</td></tr>`;
     }
 }
 
@@ -224,7 +288,8 @@ async function gestionarEnviament(e, tipusFormulari) {
 
     if (tipusFormulari === 'esdeveniment') {
         dadesRegistre = {
-            data_hora: document.getElementById("dataEsdeveniment").value,
+            // Afegim new Date(...).toISOString() per respectar la zona horària local
+            data_hora: new Date(document.getElementById("dataEsdeveniment").value).toISOString(),
             tipus_registre: "esdeveniment",
             valor: document.getElementById("inputEsdeveniment").value.trim(),
             intensitat: null,
@@ -233,7 +298,8 @@ async function gestionarEnviament(e, tipusFormulari) {
         };
     } else {
         dadesRegistre = {
-            data_hora: document.getElementById("dataMalDeCap").value,
+            // Afegim new Date(...).toISOString() aquí també
+            data_hora: new Date(document.getElementById("dataMalDeCap").value).toISOString(),
             tipus_registre: "maldecap",
             valor: document.getElementById("inputTipus").value.trim(),
             intensitat: document.getElementById("selectIntensitat").value,
@@ -258,8 +324,9 @@ async function gestionarEnviament(e, tipusFormulari) {
         }
         establirDatesActuals();
 
-        // Actualitzem les llistes de manera dinàmica perquè el nou terme aparegui immediatament
+        // Actualitzem les llistes i la taula recent automàticament
         carregarOpcionsDatalists();
+        carregarUltimsRegistres();
 
     } catch (error) {
         console.error("Error al desar:", error);
