@@ -91,16 +91,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ==========================================
 async function carregarOpcionsDatalists() {
     try {
-        // Obtenim tots els registres de l'usuari actual
         const { data, error } = await supabaseClient
             .from('registres')
             .select('tipus_registre, valor');
 
         if (error) throw error;
 
-        // Base predefinida per a Esdeveniments (Aliments o activitats)
         const esdevenimentsBase = ["Cafè", "Patata", "Ioga"];
-        // Base predefinida per a Tipus de Mal de Cap
         const malDeCapBase = [
             "Tensional", 
             "Cervicàlgia (espleni)", 
@@ -110,15 +107,12 @@ async function carregarOpcionsDatalists() {
             "Migranya sense aura"
         ];
 
-        // Extreure i filtrar de la base de dades
         const esdevenimentsDB = data ? data.filter(r => r.tipus_registre === 'esdeveniment' && r.valor).map(r => r.valor) : [];
         const malDeCapDB = data ? data.filter(r => r.tipus_registre === 'maldecap' && r.valor).map(r => r.valor) : [];
 
-        // Combinar, eliminar duplicats (fent servir Set) i ordenar alfabèticament (ignorant majúscules/minúscules)
         const esdevenimentsUnics = [...new Set([...esdevenimentsBase, ...esdevenimentsDB])].sort((a, b) => a.localeCompare(b, 'ca', {sensitivity: 'accent'}));
         const malDeCapUnics = [...new Set([...malDeCapBase, ...malDeCapDB])].sort((a, b) => a.localeCompare(b, 'ca', {sensitivity: 'accent'}));
 
-        // Actualitzar el DOM del datalist d'esdeveniments
         const dlEsdeveniments = document.getElementById("llistaEsdeveniments");
         if (dlEsdeveniments) {
             dlEsdeveniments.innerHTML = "";
@@ -129,7 +123,6 @@ async function carregarOpcionsDatalists() {
             });
         }
 
-        // Actualitzar el DOM del datalist de tipus de mal de cap
         const dlMalDeCap = document.getElementById("llistaTipusMalDeCap");
         if (dlMalDeCap) {
             dlMalDeCap.innerHTML = "";
@@ -173,7 +166,6 @@ async function carregarUltimsRegistres() {
         data.forEach(r => {
             const tr = document.createElement("tr");
 
-            // Format de data i hora més llegible (DD/MM/YYYY HH:MM)
             let dataFormatejada = r.data_hora;
             try {
                 const d = new Date(r.data_hora);
@@ -255,17 +247,20 @@ window.mostrarPanell = function(panell) {
     const formMalDeCap = document.getElementById("formMalDeCap");
     const btnNavEsdeveniment = document.getElementById("btnNavEsdeveniment");
     const btnNavMalDeCap = document.getElementById("btnNavMalDeCap");
+    const cardHistorial = document.getElementById("cardHistorialRecent");
 
     if (panell === 'esdeveniment') {
         formEsdeveniment.classList.remove("hidden");
         formMalDeCap.classList.add("hidden");
         btnNavEsdeveniment.classList.add("active");
         btnNavMalDeCap.classList.remove("active");
+        if (cardHistorial) cardHistorial.classList.remove("hidden");
     } else {
         formMalDeCap.classList.remove("hidden");
         formEsdeveniment.classList.add("hidden");
         btnNavMalDeCap.classList.add("active");
         btnNavEsdeveniment.classList.remove("active");
+        if (cardHistorial) cardHistorial.classList.add("hidden");
     }
 };
 
@@ -288,7 +283,6 @@ async function gestionarEnviament(e, tipusFormulari) {
 
     if (tipusFormulari === 'esdeveniment') {
         dadesRegistre = {
-            // Afegim new Date(...).toISOString() per respectar la zona horària local
             data_hora: new Date(document.getElementById("dataEsdeveniment").value).toISOString(),
             tipus_registre: "esdeveniment",
             valor: document.getElementById("inputEsdeveniment").value.trim(),
@@ -298,7 +292,6 @@ async function gestionarEnviament(e, tipusFormulari) {
         };
     } else {
         dadesRegistre = {
-            // Afegim new Date(...).toISOString() aquí també
             data_hora: new Date(document.getElementById("dataMalDeCap").value).toISOString(),
             tipus_registre: "maldecap",
             valor: document.getElementById("inputTipus").value.trim(),
@@ -324,7 +317,6 @@ async function gestionarEnviament(e, tipusFormulari) {
         }
         establirDatesActuals();
 
-        // Actualitzem les llistes i la taula recent automàticament
         carregarOpcionsDatalists();
         carregarUltimsRegistres();
 
