@@ -5,6 +5,9 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let dadesGlobals = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Inicialitzem el filtre de temps predeterminat (3 mesos) abans de carregar
+    aplicarFiltresTempsPredefinits();
+
     await carregarDadesInicials();
     
     document.addEventListener("click", (e) => {
@@ -91,11 +94,25 @@ function aplicarFiltresTempsPredefinits() {
     const grupFi = document.getElementById('grupDataFi');
     
     const avui = new Date();
-    let dataInici = null;
+    let dataInici = new Date();
 
     if (opcio === 'personalitzat') {
         grupInici.style.display = 'flex';
         grupFi.style.display = 'flex';
+        
+        // Si no hi ha valors establerts als inputs de data, els assignem per defecte (fa 3 mesos fins a avui)
+        const inputInici = document.getElementById('dataInici');
+        const inputFi = document.getElementById('dataFi');
+        
+        if (!inputInici.value || !inputFi.value) {
+            const tresMesosEnrere = new Date();
+            tresMesosEnrere.setMonth(avui.getMonth() - 3);
+            
+            inputInici.value = tresMesosEnrere.toISOString().split('T')[0];
+            inputFi.value = avui.toISOString().split('T')[0];
+        }
+        
+        actualitzarEstadistiques();
         return;
     } else {
         grupInici.style.display = 'none';
@@ -103,14 +120,13 @@ function aplicarFiltresTempsPredefinits() {
     }
 
     if (opcio === '3mesos') {
-        dataInici = new Date();
         dataInici.setMonth(avui.getMonth() - 3);
     } else if (opcio === '6mesos') {
-        dataInici = new Date();
         dataInici.setMonth(avui.getMonth() - 6);
     } else if (opcio === '1any') {
-        dataInici = new Date();
         dataInici.setFullYear(avui.getFullYear() - 1);
+    } else if (opcio === 'tots') {
+        dataInici = null;
     }
 
     if (dataInici) {
@@ -145,7 +161,7 @@ function actualitzarEstadistiques() {
     else if (tipusSeleccionats.length === 0) txtTipus.textContent = "Cap tipus";
     else txtTipus.textContent = `${tipusSeleccionats.length} seleccionats`;
 
-    document.getElementById('subtitolCorrelacio').textContent = `Aliments o esdeveniments registrats durant les darreres ${horesPrèvies} hores prèvies a cada tipus d'episodi:`;
+    document.getElementById('subtitolCorrelacio').textContent = `Aliments ou esdeveniments registrats durant les darreres ${horesPrèvies} hores prèvies a cada tipus d'episodi:`;
 
     let dataIniciVal = document.getElementById('dataInici').value;
     let dataFiVal = document.getElementById('dataFi').value;
@@ -274,7 +290,7 @@ function actualitzarEstadistiques() {
         div.style.background = 'var(--bg)';
         div.style.padding = '14px';
         div.style.borderRadius = '8px';
-        div.style.border = '1px solid var(--border)';
+        div.style.border = '1.5px solid var(--border)';
 
         div.innerHTML = `<strong style="color:var(--text); font-size:1rem; display:block; margin-bottom:10px;">Tipus: ${tipus} <span style="font-weight:normal; color:var(--text-light); font-size:0.85rem;">(${malsTipus.length} episodis)</span></strong>`;
         
