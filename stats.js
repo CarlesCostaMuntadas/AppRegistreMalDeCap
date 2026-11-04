@@ -187,6 +187,7 @@ function actualitzarEstadistiques() {
     }
 
     calcularPeriodeSenseMedicacio(malsDeCap);
+    calcularDiesActualsSenseMedicacio();
     calcularMitjanaMedicacioPerMes(malsDeCap, minDateFiltre, maxDateFiltre);
 
     // 1. Formatget per a tipologies
@@ -203,11 +204,10 @@ function actualitzarEstadistiques() {
             comptadorIntensitat[r.intensitat] = (comptadorIntensitat[r.intensitat] || 0) + 1;
         }
     });
-    // Color predefinit segons la gravetat
     const colorsIntensitat = {
-        'Lleuger': '#34d399', // verd
-        'Moderat': '#fbbf24', // groc/taronja
-        'Sever': '#f87171'    // vermell
+        'Lleuger': '#34d399',
+        'Moderat': '#fbbf24',
+        'Sever': '#f87171'
     };
     renderitzarGraficFormatget('chart-intensitat', comptadorIntensitat, 'episodis', 'totalCardIntensitat', colorsIntensitat);
 
@@ -313,23 +313,47 @@ function calcularPeriodeSenseMedicacio(malsDeCap) {
     element.textContent = maxDies > 0 ? `${maxDies} dies` : "Cap període registrat";
 }
 
-// CÀLCUL REVISAT: Mitjana de medicació per MES
+function calcularDiesActualsSenseMedicacio() {
+    const element = document.getElementById('txtDiesActualsSenseMed');
+    if (!element) return;
+
+    const malsDeCap = dadesGlobals.filter(r => r.tipus_registre === 'maldecap');
+    if (malsDeCap.length === 0) {
+        element.textContent = "0 dies";
+        return;
+    }
+
+    const ordenats = [...malsDeCap].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+    let darrerCopMedicacio = null;
+
+    ordenats.forEach(r => {
+        if (r.medicacio) {
+            darrerCopMedicacio = new Date(r.data_hora);
+        }
+    });
+
+    if (!darrerCopMedicacio) {
+        element.textContent = "Sense medicació";
+        return;
+    }
+
+    const avui = new Date();
+    const diffDies = Math.floor((avui - darrerCopMedicacio) / (1000 * 60 * 60 * 24));
+    element.textContent = `${Math.max(diffDies, 0)} dies`;
+}
+
 function calcularMitjanaMedicacioPerMes(malsDeCap, dataInici, dataFi) {
     const element = document.getElementById('txtMitjanaMedicacio');
     if (!element) return;
 
     const totalMedicacions = malsDeCap.filter(r => r.medicacio).length;
     
-    // Calculem el total de dies del període seleccionat
     const diffTempsMS = Math.abs(dataFi - dataInici);
     const totalDies = Math.max(diffTempsMS / (1000 * 60 * 60 * 24), 1);
     
-    // Un mes té aproximadament 30.4375 dies
     const totalMesos = Math.max(totalDies / 30.4375, 1);
 
     const mitjanaMes = totalMedicacions / totalMesos;
-    
-    // Format net: si és sencer o té decimals (ex: 2.5 / mes)
     element.textContent = `${mitjanaMes.toFixed(1)} / mes`;
 }
 

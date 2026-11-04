@@ -88,22 +88,34 @@
 
         <div id="stats-content" class="hidden app-layout" style="gap: 20px;">
             
-            <!-- Mètriques destacades (Rècord sense medicació + Mitjana medicació per mes) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-                <div class="metric-highlight" style="margin-top: 0;">
-                    <span class="metric-title" style="display: flex; align-items: center; gap: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Període més llarg sense medicació
+            <!-- Mètriques destacades distribuïdes en dues línies -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Línia 1: Dies sense medicació actuals (destacat al 100%) -->
+                <div class="metric-highlight" style="margin-top: 0; background: #faf5ff; border-color: #e9d5ff; width: 100%; box-sizing: border-box;">
+                    <span class="metric-title" style="display: flex; align-items: center; gap: 8px; color: #6b21a8;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#9333ea;"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+                        Dies sense medicació (actual)
                     </span>
-                    <span id="txtMaxDiesSenseMed" class="metric-value">0 dies</span>
+                    <span id="txtDiesActualsSenseMed" class="metric-value" style="color: #9333ea; font-size: 1.6rem;">0 dies</span>
                 </div>
-				<div class="metric-highlight" style="margin-top: 0; background: #f0fdf4; border-color: #bbf7d0;">
-					<span class="metric-title" style="display: flex; align-items: center; gap: 8px; color: #166534;">
-						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success);"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-						Mitjana medicació / mes
-					</span>
-					<span id="txtMitjanaMedicacio" class="metric-value" style="color: var(--success);">0.0 / mes</span>
-				</div>
+
+                <!-- Línia 2: Període més llarg i Mitjana de medicació -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div class="metric-highlight" style="margin-top: 0;">
+                        <span class="metric-title" style="display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Període més llarg sense medicació
+                        </span>
+                        <span id="txtMaxDiesSenseMed" class="metric-value">0 dies</span>
+                    </div>
+                    <div class="metric-highlight" style="margin-top: 0; background: #f0fdf4; border-color: #bbf7d0;">
+                        <span class="metric-title" style="display: flex; align-items: center; gap: 8px; color: #166534;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success);"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+                            Mitjana medicació / mes
+                        </span>
+                        <span id="txtMitjanaMedicacio" class="metric-value" style="color: var(--success);">0.0 / mes</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Gràfics Superiors en formatget: Tipology i Intensitat -->
