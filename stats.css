@@ -1,7 +1,20 @@
 .filter-bar { background: var(--surface); border: 1.5px solid var(--border); padding: 16px; border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 20px; }
 .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 170px; position: relative; }
 .filter-group label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); }
-.filter-group select, .filter-group input { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: white; color: var(--text); outline: none; }
+.filter-group select, 
+.filter-group input[type="text"],
+.filter-group input[type="date"],
+.filter-group input[type="number"] { 
+    padding: 8px 12px; 
+    border: 1.5px solid var(--border); 
+    border-radius: 8px; 
+    font-size: 0.9rem; 
+    background: white; 
+    color: var(--text); 
+    outline: none; 
+    font-family: inherit;
+    box-sizing: border-box;
+}
 
 /* Estils per als desplegables personalitzats amb checkbox */
 .dropdown-filter-container { position: relative; }
