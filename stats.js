@@ -328,6 +328,15 @@ function calcularPeriodeSenseMedicacio(malsDeCap) {
         }
     });
 
+    // Comprovem també el període obert des de l'última medicació fins avui
+    if (ultimCopMedicacio) {
+        const avui = new Date();
+        const diffActual = Math.floor((avui - ultimCopMedicacio) / (1000 * 60 * 60 * 24));
+        if (diffActual > maxDies) {
+            maxDies = diffActual;
+        }
+    }
+
     element.textContent = maxDies > 0 ? `${maxDies} dies` : "Cap període registrat";
 }
 
