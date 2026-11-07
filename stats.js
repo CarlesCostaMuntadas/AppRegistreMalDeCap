@@ -119,7 +119,9 @@ function aplicarFiltresTempsPredefinits() {
         grupFi.style.display = 'none';
     }
 
-    if (opcio === '3mesos') {
+    if (opcio === '1mes') {
+        dataInici.setDate(avui.getDate() - 30);
+    } else if (opcio === '3mesos') {
         dataInici.setMonth(avui.getMonth() - 3);
     } else if (opcio === '6mesos') {
         dataInici.setMonth(avui.getMonth() - 6);
