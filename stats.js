@@ -367,50 +367,62 @@ function actualitzarTargetesDestacadesDinamiques(filtreMedicacio, malsDeCapFiltr
     elValMitjana.textContent = `${mitjanaMes.toFixed(1)} / mes`;
 }
 
-// Funció auxiliar corregida per calcular el nombre màxim de dies nets consecutius exactes
+// Funció auxiliar ultra-precisa basada en la diferència exacta entre dates i registres
 function calcularPeriodeMaximDiesNets(malsDeCapFiltrats, dataInici, dataFi) {
     if (!dataInici || !dataFi) return 0;
 
-    // 1. Extraure totes les dates (YYYY-MM-DD) on hi ha hagut episodis segons els filtres
-    const diesAmbEpisodi = new Set();
-    malsDeCapFiltrats.forEach(r => {
-        const d = new Date(r.data_hora);
-        diesAmbEpisodi.add(d.toISOString().split('T')[0]);
-    });
-
-    // 2. Generar tots els dies del rang permès (entre dataInici i el mínim entre dataFi i avui)
-    let curr = new Date(dataInici.getTime());
-    curr.setHours(0, 0, 0, 0);
-
-    const fi = new Date(dataFi.getTime());
-    fi.setHours(0, 0, 0, 0);
+    // Ordenem cronològicament els episodis filtrats
+    const ordenats = [...malsDeCapFiltrats].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+    
+    let maxDiesNets = 0;
+    
+    // Si no hi ha cap episodi en aquest període, tot el rang temporal és una única gran ratxa neta
+    const limitInici = new Date(dataInici.getTime());
+    limitInici.setHours(0, 0, 0, 0);
 
     const avui = new Date();
     avui.setHours(0, 0, 0, 0);
-    const limitFi = fi > avui ? avui : fi;
+    const limitFi = dataFi > avui ? avui : new Date(dataFi.getTime());
+    limitFi.setHours(0, 0, 0, 0);
 
-    let maxRatxa = 0;
-    let ratxaActual = 0;
-
-    while (curr <= limitFi) {
-        const clauData = curr.toISOString().split('T')[0];
-        
-        if (!diesAmbEpisodi.has(clauData)) {
-            // El dia és net (sense cap episodi registrat que compleixi els filtres)
-            ratxaActual++;
-            if (ratxaActual > maxRatxa) {
-                maxRatxa = ratxaActual;
-            }
-        } else {
-            // Hi ha hagut episodi, la ratxa es trenca
-            ratxaActual = 0;
-        }
-
-        // Avançar exactament un dia calendaris
-        curr.setDate(curr.getDate() + 1);
+    if (ordenats.length === 0) {
+        const diffTotal = Math.round((limitFi - limitInici) / (1000 * 60 * 60 * 24));
+        return Math.max(diffTotal, 0);
     }
 
-    return maxRatxa;
+    // 1. Comprovem el període des de l'inici del filtre fins al primer episodi
+    const primerEpisodi = new Date(ordenats[0].data_hora);
+    primerEpisodi.setHours(0, 0, 0, 0);
+    if (primerEpisodi > limitInici) {
+        const diffInici = Math.round((primerEpisodi - limitInici) / (1000 * 60 * 60 * 24));
+        if (diffInici > maxDiesNets) maxDiesNets = diffInici;
+    }
+
+    // 2. Comprovem els intervals nets entre episodis consecutius dins del període
+    for (let i = 0; i < ordenats.length - 1; i++) {
+        const d1 = new Date(ordenats[i].data_hora);
+        d1.setHours(0, 0, 0, 0);
+        const d2 = new Date(ordenats[i + 1].data_hora);
+        d2.setHours(0, 0, 0, 0);
+
+        // Els dies nets entre dos episodis és la diferència menys 1 (perquè el dia de l'episodi no compta com a net)
+        const diffInterval = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) - 1;
+        if (diffInterval > maxDiesNets) {
+            maxDiesNets = diffInterval;
+        }
+    }
+
+    // 3. Comprovem des de l'últim episodi fins avui (o fins al final del límit del filtre)
+    const darrerEpisodi = new Date(ordenats[ordenats.length - 1].data_hora);
+    darrerEpisodi.setHours(0, 0, 0, 0);
+    if (limitFi > darrerEpisodi) {
+        const diffFinal = Math.round((limitFi - darrerEpisodi) / (1000 * 60 * 60 * 24));
+        if (diffFinal > maxDiesNets) {
+            maxDiesNets = diffFinal;
+        }
+    }
+
+    return Math.max(maxDiesNets, 0);
 }
 
 function renderitzarGraficFormatget(containerId, dades, etiqueta, totalElementId, mapaColorsPersonalitzat = null) {
