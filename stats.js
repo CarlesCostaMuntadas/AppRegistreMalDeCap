@@ -5,9 +5,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let dadesGlobals = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Inicialitzem el filtre de temps predeterminat (3 mesos) abans de carregar
     aplicarFiltresTempsPredefinits();
-
     await carregarDadesInicials();
     
     document.addEventListener("click", (e) => {
@@ -100,7 +98,6 @@ function aplicarFiltresTempsPredefinits() {
         grupInici.style.display = 'flex';
         grupFi.style.display = 'flex';
         
-        // Si no hi ha valors establerts als inputs de data, els assignem per defecte (fa 3 mesos fins a avui)
         const inputInici = document.getElementById('dataInici');
         const inputFi = document.getElementById('dataFi');
         
@@ -163,7 +160,7 @@ function actualitzarEstadistiques() {
     else if (tipusSeleccionats.length === 0) txtTipus.textContent = "Cap tipus";
     else txtTipus.textContent = `${tipusSeleccionats.length} seleccionats`;
 
-    document.getElementById('subtitolCorrelacio').textContent = `Aliments ou esdeveniments registrats durant les darreres ${horesPrèvies} hores prèvies a cada tipus d'episodi:`;
+    document.getElementById('subtitolCorrelacio').textContent = `Aliments o esdeveniments registrats durant les darreres ${horesPrèvies} hores prèvies a cada tipus d'episodi:`;
 
     let dataIniciVal = document.getElementById('dataInici').value;
     let dataFiVal = document.getElementById('dataFi').value;
@@ -204,9 +201,8 @@ function actualitzarEstadistiques() {
         minDateFiltre.setMonth(minDateFiltre.getMonth() - 1);
     }
 
-    calcularPeriodeSenseMedicacio(malsDeCap);
-    calcularDiesActualsSenseMedicacio();
-    calcularMitjanaMedicacioPerMes(malsDeCap, minDateFiltre, maxDateFiltre);
+    // Càlcul de les targetes destacades adaptades
+    actualitzarTargetesDestacadesDinamiques(filtreMedicacio, malsDeCap, minDateFiltre, maxDateFiltre);
 
     // 1. Formatget per a tipologies
     const comptadorTipologia = {};
@@ -215,7 +211,7 @@ function actualitzarEstadistiques() {
     });
     renderitzarGraficFormatget('chart-tipologia', comptadorTipologia, 'episodis', 'totalCardTipologia');
 
-    // 2. Formatget per a intensitats (amb colors personalitzats)
+    // 2. Formatget per a intensitats
     const comptadorIntensitat = {};
     malsDeCap.forEach(r => {
         if (r.intensitat) {
@@ -306,82 +302,94 @@ function actualitzarEstadistiques() {
     });
 }
 
-function calcularPeriodeSenseMedicacio(malsDeCap) {
-    const element = document.getElementById('txtMaxDiesSenseMed');
-    if (!malsDeCap || malsDeCap.length === 0) {
-        element.textContent = "0 dies";
-        return;
+function actualitzarTargetesDestacadesDinamiques(filtreMedicacio, malsDeCapFiltrats, dataInici, dataFi) {
+    const elTitolActuals = document.getElementById('titolDiesActuals');
+    const elValActuals = document.getElementById('txtDiesActuals');
+    
+    const elTitolMax = document.getElementById('titolMaxDies');
+    const elValMax = document.getElementById('txtMaxDies');
+    
+    const elTitolMitjana = document.getElementById('titolMitjana');
+    const elValMitjana = document.getElementById('txtMitjana');
+
+    const iconaCalendari = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#9333ea;"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`;
+    const iconaRellotge = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+    const iconaPíndola = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success);"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>`;
+
+    // Textos de títols segons el filtre
+    if (filtreMedicacio === 'amb') {
+        elTitolActuals.innerHTML = `${iconaCalendari} Quants dies porto sense medicar-me?`;
+        elTitolMax.innerHTML = `${iconaRellotge} Quin és el període més llarg sense medicar-me?`;
+        elTitolMitjana.innerHTML = `${iconaPíndola} Quina és la mitjana de medicació / mes?`;
+    } else if (filtreMedicacio === 'sense') {
+        elTitolActuals.innerHTML = `${iconaCalendari} Quants dies porto sense episodis no medicats?`;
+        elTitolMax.innerHTML = `${iconaRellotge} Quin és el període més llarg sense episodis no medicats?`;
+        elTitolMitjana.innerHTML = `${iconaPíndola} Quina és la mitjana d'episodis sense medicació / mes?`;
+    } else {
+        elTitolActuals.innerHTML = `${iconaCalendari} Quants dies porto sense mal de cap?`;
+        elTitolMax.innerHTML = `${iconaRellotge} Quin és el període més llarg sense mal de cap?`;
+        elTitolMitjana.innerHTML = `${iconaPíndola} Quina és la mitjana d'episodis de mal de cap / mes?`;
     }
 
-    const ordenats = [...malsDeCap].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
-    let maxDies = 0;
-    let ultimCopMedicacio = null;
+    // 1. Dies actuals (des del darrer registre global corresponent fins a avui)
+    let registresBaseActuals = dadesGlobals.filter(r => r.tipus_registre === 'maldecap');
+    if (filtreMedicacio === 'amb') {
+        registresBaseActuals = registresBaseActuals.filter(r => r.medicacio);
+    } else if (filtreMedicacio === 'sense') {
+        registresBaseActuals = registresBaseActuals.filter(r => !r.medicacio);
+    }
 
-    ordenats.forEach(r => {
-        const dataEpisodi = new Date(r.data_hora);
-        if (r.medicacio) {
-            if (ultimCopMedicacio) {
-                const diffDies = Math.floor((dataEpisodi - ultimCopMedicacio) / (1000 * 60 * 60 * 24));
+    if (registresBaseActuals.length === 0) {
+        elValActuals.textContent = "Sense registres";
+    } else {
+        const ordenats = [...registresBaseActuals].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+        const darrerRegistre = new Date(ordenats[ordenats.length - 1].data_hora);
+        darrerRegistre.setHours(0, 0, 0, 0);
+        
+        const avui = new Date();
+        avui.setHours(0, 0, 0, 0);
+        
+        const diffDies = Math.round((avui - darrerRegistre) / (1000 * 60 * 60 * 24));
+        elValActuals.textContent = `${Math.max(diffDies, 0)} dies`;
+    }
+
+    // 2. Període més llarg (EN FUNCIÓ del període temporal seleccionat i dels filtres actius)
+    if (!malsDeCapFiltrats || malsDeCapFiltrats.length === 0) {
+        elValMax.textContent = "0 dies";
+    } else {
+        const ordenatsFiltrats = [...malsDeCapFiltrats].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+        let maxDies = 0;
+        let ultimPunt = null;
+
+        ordenatsFiltrats.forEach(r => {
+            const dataR = new Date(r.data_hora);
+            dataR.setHours(0, 0, 0, 0);
+            if (ultimPunt) {
+                const diffDies = Math.round((dataR - ultimPunt) / (1000 * 60 * 60 * 24));
                 if (diffDies > maxDies) maxDies = diffDies;
             }
-            ultimCopMedicacio = dataEpisodi;
-        }
-    });
+            ultimPunt = dataR;
+        });
 
-    // Comprovem també el període obert des de l'última medicació fins avui
-    if (ultimCopMedicacio) {
-        const avui = new Date();
-        const diffActual = Math.floor((avui - ultimCopMedicacio) / (1000 * 60 * 60 * 24));
-        if (diffActual > maxDies) {
-            maxDies = diffActual;
+        // Comprovem també la ratxa oberta actual fins avui (només si la data d'inici del filtre cau dins del rang)
+        if (ultimPunt) {
+            const avui = new Date();
+            avui.setHours(0, 0, 0, 0);
+            const diffActual = Math.round((avui - ultimPunt) / (1000 * 60 * 60 * 24));
+            if (diffActual > maxDies) maxDies = diffActual;
         }
+
+        elValMax.textContent = `${Math.max(maxDies, 0)} dies`;
     }
 
-    element.textContent = maxDies > 0 ? `${maxDies} dies` : "Cap període registrat";
-}
-
-function calcularDiesActualsSenseMedicacio() {
-    const element = document.getElementById('txtDiesActualsSenseMed');
-    if (!element) return;
-
-    const malsDeCap = dadesGlobals.filter(r => r.tipus_registre === 'maldecap');
-    if (malsDeCap.length === 0) {
-        element.textContent = "0 dies";
-        return;
-    }
-
-    const ordenats = [...malsDeCap].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
-    let darrerCopMedicacio = null;
-
-    ordenats.forEach(r => {
-        if (r.medicacio) {
-            darrerCopMedicacio = new Date(r.data_hora);
-        }
-    });
-
-    if (!darrerCopMedicacio) {
-        element.textContent = "Sense medicació";
-        return;
-    }
-
-    const avui = new Date();
-    const diffDies = Math.floor((avui - darrerCopMedicacio) / (1000 * 60 * 60 * 24));
-    element.textContent = `${Math.max(diffDies, 0)} dies`;
-}
-
-function calcularMitjanaMedicacioPerMes(malsDeCap, dataInici, dataFi) {
-    const element = document.getElementById('txtMitjanaMedicacio');
-    if (!element) return;
-
-    const totalMedicacions = malsDeCap.filter(r => r.medicacio).length;
-    
+    // 3. Mitjana mensual (en funció del període temporal seleccionat)
+    const totalRegistresMes = malsDeCapFiltrats.length;
     const diffTempsMS = Math.abs(dataFi - dataInici);
     const totalDies = Math.max(diffTempsMS / (1000 * 60 * 60 * 24), 1);
-    
     const totalMesos = Math.max(totalDies / 30.4375, 1);
-
-    const mitjanaMes = totalMedicacions / totalMesos;
-    element.textContent = `${mitjanaMes.toFixed(1)} / mes`;
+    const mitjanaMes = totalRegistresMes / totalMesos;
+    
+    elValMitjana.textContent = `${mitjanaMes.toFixed(1)} / mes`;
 }
 
 function renderitzarGraficFormatget(containerId, dades, etiqueta, totalElementId, mapaColorsPersonalitzat = null) {
