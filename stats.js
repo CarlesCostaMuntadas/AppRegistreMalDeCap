@@ -353,34 +353,9 @@ function actualitzarTargetesDestacadesDinamiques(filtreMedicacio, malsDeCapFiltr
         elValActuals.textContent = `${Math.max(diffDies, 0)} dies`;
     }
 
-    // 2. Període més llarg (EN FUNCIÓ del període temporal seleccionat i dels filtres actius)
-    if (!malsDeCapFiltrats || malsDeCapFiltrats.length === 0) {
-        elValMax.textContent = "0 dies";
-    } else {
-        const ordenatsFiltrats = [...malsDeCapFiltrats].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
-        let maxDies = 0;
-        let ultimPunt = null;
-
-        ordenatsFiltrats.forEach(r => {
-            const dataR = new Date(r.data_hora);
-            dataR.setHours(0, 0, 0, 0);
-            if (ultimPunt) {
-                const diffDies = Math.round((dataR - ultimPunt) / (1000 * 60 * 60 * 24));
-                if (diffDies > maxDies) maxDies = diffDies;
-            }
-            ultimPunt = dataR;
-        });
-
-        // Comprovem també la ratxa oberta actual fins avui (només si la data d'inici del filtre cau dins del rang)
-        if (ultimPunt) {
-            const avui = new Date();
-            avui.setHours(0, 0, 0, 0);
-            const diffActual = Math.round((avui - ultimPunt) / (1000 * 60 * 60 * 24));
-            if (diffActual > maxDies) maxDies = diffActual;
-        }
-
-        elValMax.textContent = `${Math.max(maxDies, 0)} dies`;
-    }
+    // 2. Període més llarg de dies nets (consecutius) dins del període temporal seleccionat
+    const maxDiesNets = calcularPeriodeMaximDiesNets(malsDeCapFiltrats, dataInici, dataFi);
+    elValMax.textContent = `${maxDiesNets} dies`;
 
     // 3. Mitjana mensual (en funció del període temporal seleccionat)
     const totalRegistresMes = malsDeCapFiltrats.length;
@@ -390,6 +365,52 @@ function actualitzarTargetesDestacadesDinamiques(filtreMedicacio, malsDeCapFiltr
     const mitjanaMes = totalRegistresMes / totalMesos;
     
     elValMitjana.textContent = `${mitjanaMes.toFixed(1)} / mes`;
+}
+
+// Funció auxiliar corregida per calcular el nombre màxim de dies nets consecutius exactes
+function calcularPeriodeMaximDiesNets(malsDeCapFiltrats, dataInici, dataFi) {
+    if (!dataInici || !dataFi) return 0;
+
+    // 1. Extraure totes les dates (YYYY-MM-DD) on hi ha hagut episodis segons els filtres
+    const diesAmbEpisodi = new Set();
+    malsDeCapFiltrats.forEach(r => {
+        const d = new Date(r.data_hora);
+        diesAmbEpisodi.add(d.toISOString().split('T')[0]);
+    });
+
+    // 2. Generar tots els dies del rang permès (entre dataInici i el mínim entre dataFi i avui)
+    let curr = new Date(dataInici.getTime());
+    curr.setHours(0, 0, 0, 0);
+
+    const fi = new Date(dataFi.getTime());
+    fi.setHours(0, 0, 0, 0);
+
+    const avui = new Date();
+    avui.setHours(0, 0, 0, 0);
+    const limitFi = fi > avui ? avui : fi;
+
+    let maxRatxa = 0;
+    let ratxaActual = 0;
+
+    while (curr <= limitFi) {
+        const clauData = curr.toISOString().split('T')[0];
+        
+        if (!diesAmbEpisodi.has(clauData)) {
+            // El dia és net (sense cap episodi registrat que compleixi els filtres)
+            ratxaActual++;
+            if (ratxaActual > maxRatxa) {
+                maxRatxa = ratxaActual;
+            }
+        } else {
+            // Hi ha hagut episodi, la ratxa es trenca
+            ratxaActual = 0;
+        }
+
+        // Avançar exactament un dia calendaris
+        curr.setDate(curr.getDate() + 1);
+    }
+
+    return maxRatxa;
 }
 
 function renderitzarGraficFormatget(containerId, dades, etiqueta, totalElementId, mapaColorsPersonalitzat = null) {
